@@ -1,6 +1,8 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 
-#[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
+// --- struct ---
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd)]
 enum Card {
     Flower,
     Num(u8, u8),
@@ -10,6 +12,13 @@ enum Card {
 }
 
 impl Card {
+    const HASH_STK: [[char; 9]; 3] = [
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'],
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l']
+    ];
+    const HASH_SPEC: [char; 3] = ['z', 'x', 'c'];
+
     fn can_move_front_of(&self, target_card: &Card) -> bool{
         if let Card::Empty = target_card {
             return true;
@@ -22,6 +31,26 @@ impl Card {
         }
         false
     }
+
+    fn into_char(&self) -> char {
+        match self {
+            Card::Num(tp, x) => {
+                Card::HASH_STK[tp.to_owned() as usize][(x.to_owned() - 1) as usize]
+            },
+            Card::Spec(x) => {
+                Card::HASH_SPEC[x.to_owned() as usize]
+            },
+            Card::Flower => {
+                'v'
+            },
+            Card::Empty => {
+                'b'
+            },
+            Card::Disable => {
+                'n'
+            }
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -31,14 +60,14 @@ struct Decks {
     storage: [Card; 3]
 }
 
-fn give_a_deque() -> Vec<Card> {
-    Vec::<Card>::new()
-}
-
 impl Decks {
-    // TODO add card
+    const HASH_STK: [[char; 9]; 3] = [
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'],
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l']
+    ];
+    const HASH_SPEC: [char; 3] = ['z', 'x', 'c'];
     fn new(cards: String) -> Self {
-
         let mut stks: [Vec<Card>; 8] = Default::default();
         for idx in 0..8 {
             stks[idx].push(Card::Empty);
@@ -154,6 +183,7 @@ impl Decks {
             },
         }
     }
+
     fn scan_spec(&self) -> (bool, u8) {
         if !self.storage_has_empty() {
             return (false, 255);
@@ -187,10 +217,59 @@ impl Decks {
         }
         false
     }
+
+    fn into_string(&self) -> String {
+        let mut tmp = Vec::from(self.storage);
+        tmp.sort();
+        let mut flag = String::from("");
+        for i in tmp {
+            flag = format!("{}{}", flag, i.into_char());
+        }
+        for idx in 0..8 {
+            for tmp in &self.stks[idx] {
+                if let Card::Empty = tmp {
+                    continue;
+                }
+                flag = format!("{}{}", flag, tmp.into_char());
+            }
+            flag = format!("{};", flag);
+        }
+        flag
+    }
+}
+
+struct Solve {
+    flag_set: HashSet<String>,
+    deck: Decks,
+    solution: Vec<String>
+}
+
+// --- solve ---
+
+impl Solve {
+    fn new(init: String) -> Self {
+        let deck = Decks::new(init);
+        let flag_set = HashSet::<String>::new();
+        let solution = Vec::<String>::new();
+        Self {
+            deck,
+            flag_set,
+            solution
+        }
+    }
+    fn mark(&mut self) {
+        self.flag_set.insert(self.deck.into_string());
+    }
+
+    fn dfs(mut now: Solve) -> Solve {
+        now
+    }
 }
 
 fn main() {
 }
+
+// --- test ---
 
 #[test]
 fn test_for_swap() {
@@ -214,4 +293,19 @@ fn test_create() {
     let res = format!("{:?}", decks);
     let should_be = String::from("Decks { rev_cards: [0, 0, 0], stks: [[Empty, Spec(0), Num(1, 5), Spec(2), Num(1, 2), Num(2, 6)], [Empty, Num(0, 8), Flower, Num(1, 1), Num(2, 4), Num(0, 6)], [Empty, Num(1, 3), Spec(2), Num(1, 7), Num(0, 7), Num(0, 5)], [Empty, Num(2, 1), Spec(1), Num(0, 2), Num(2, 2), Spec(2)], [Empty, Num(2, 8), Num(1, 4), Spec(1), Num(0, 9), Num(0, 3)], [Empty, Num(1, 9), Num(0, 1), Num(2, 7), Num(2, 5), Num(0, 4)], [Empty, Num(1, 8), Spec(1), Spec(0), Num(2, 3), Spec(0)], [Empty, Num(2, 9), Spec(0), Spec(1), Num(1, 6), Spec(2)]], storage: [Empty, Empty, Empty] }");
     assert!(should_be == res);
+}
+
+#[test]
+fn test_hash() {
+    let cards = String::from("zzg5mmg2b6r8llg1b4r6g3mmg7r7r5b1ffr2b2mmb8g4ffr9r3g9r1b7b5r4g8ffzzb3zzb9zzffg6mm");
+    let decks = Decks::new(cards);
+    assert!(decks.into_string() == "bbbztcwh;8vqf6;ecu75;ax2sc;krx93;o1jg4;ixzdz;lzxyc;");
+}
+
+#[test]
+fn test_sol_sturt() {
+    let cards = String::from("zzg5mmg2b6r8llg1b4r6g3mmg7r7r5b1ffr2b2mmb8g4ffr9r3g9r1b7b5r4g8ffzzb3zzb9zzffg6mm");
+    let mut sol = Solve::new(cards);
+    sol.mark();
+    assert!(sol.flag_set.contains("bbbztcwh;8vqf6;ecu75;ax2sc;krx93;o1jg4;ixzdz;lzxyc;"));
 }
