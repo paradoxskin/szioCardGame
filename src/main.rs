@@ -34,21 +34,11 @@ impl Card {
 
     fn into_char(&self) -> char {
         match self {
-            Card::Num(tp, x) => {
-                Card::HASH_STK[tp.to_owned() as usize][(x.to_owned() - 1) as usize]
-            },
-            Card::Spec(x) => {
-                Card::HASH_SPEC[x.to_owned() as usize]
-            },
-            Card::Flower => {
-                'v'
-            },
-            Card::Empty => {
-                'b'
-            },
-            Card::Disable => {
-                'n'
-            }
+            Card::Num(tp, x) => Card::HASH_STK[tp.to_owned() as usize][(x.to_owned() - 1) as usize],
+            Card::Spec(x) => Card::HASH_SPEC[x.to_owned() as usize],
+            Card::Flower => 'v',
+            Card::Empty => 'b',
+            Card::Disable => 'n',
         }
     }
 }
@@ -61,12 +51,6 @@ struct Decks {
 }
 
 impl Decks {
-    const HASH_STK: [[char; 9]; 3] = [
-        ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
-        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'],
-        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l']
-    ];
-    const HASH_SPEC: [char; 3] = ['z', 'x', 'c'];
     fn new(cards: String) -> Self {
         let mut stks: [Vec<Card>; 8] = Default::default();
         for idx in 0..8 {
@@ -76,27 +60,13 @@ impl Decks {
         let cards: Vec<char> = cards.chars().collect();
         for idx in 0..40 {
             match cards[idx * 2] {
-                'r' => {
-                    stks[idx / 5].push(Card::Num(0, cards[idx * 2 + 1]  as u8 - 48));
-                },
-                'g' => {
-                    stks[idx / 5].push(Card::Num(1, cards[idx * 2 + 1]  as u8 - 48));
-                },
-                'b' => {
-                    stks[idx / 5].push(Card::Num(2, cards[idx * 2 + 1]  as u8 - 48));
-                },
-                'z' => {
-                    stks[idx / 5].push(Card::Spec(0));
-                },
-                'f' => {
-                    stks[idx / 5].push(Card::Spec(1));
-                },
-                'm' => {
-                    stks[idx / 5].push(Card::Spec(2));
-                },
-                'l' => {
-                    stks[idx / 5].push(Card::Flower);
-                },
+                'r' => stks[idx / 5].push(Card::Num(0, cards[idx * 2 + 1]  as u8 - 48)),
+                'g' => stks[idx / 5].push(Card::Num(1, cards[idx * 2 + 1]  as u8 - 48)),
+                'b' => stks[idx / 5].push(Card::Num(2, cards[idx * 2 + 1]  as u8 - 48)),
+                'z' => stks[idx / 5].push(Card::Spec(0)),
+                'f' => stks[idx / 5].push(Card::Spec(1)),
+                'm' => stks[idx / 5].push(Card::Spec(2)),
+                'l' => stks[idx / 5].push(Card::Flower),
                 _ => {}
             }
         }
@@ -223,28 +193,28 @@ impl Decks {
         tmp.sort();
         let mut flag = String::from("");
         for i in tmp {
-            flag = format!("{}{}", flag, i.into_char());
+            flag.push(i.into_char());
         }
         for idx in 0..8 {
             for tmp in &self.stks[idx] {
                 if let Card::Empty = tmp {
                     continue;
                 }
-                flag = format!("{}{}", flag, tmp.into_char());
+                flag.push(tmp.into_char());
             }
-            flag = format!("{};", flag);
+            flag.push(';');
         }
         flag
     }
 }
+
+// --- solve ---
 
 struct Solve {
     flag_set: HashSet<String>,
     deck: Decks,
     solution: Vec<String>
 }
-
-// --- solve ---
 
 impl Solve {
     fn new(init: String) -> Self {
