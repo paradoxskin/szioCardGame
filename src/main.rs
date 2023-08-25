@@ -43,6 +43,10 @@ impl Card {
     }
 }
 
+enum MoveErr {
+    CantMove
+}
+
 #[derive(Debug, PartialEq)]
 struct Decks {
     rev_cards: [u8; 3],
@@ -126,30 +130,41 @@ impl Decks {
         res
     }
 
-    fn move_to(&mut self, from: (u8, u8, u8), to: (u8, u8)) {
+    /// try_to_move(from, to) -> (to, from) return the back way
+    fn try_to_move(&mut self, from: (u8, u8, u8), to: (u8, u8)) -> Result<((u8, u8, u8), (u8, u8)), MoveErr> {
         match from.0 {
             0 => {
                 match to.0 {
                     0 => {
+                        let fidx = self.stks[to.1 as usize].len() as u8;
                         let move_cards: Vec<Card> = self.stks[from.1 as usize].drain(from.2 as usize ..).collect();
                         self.stks[to.1 as usize].extend(move_cards);
+                        Ok(((to.0, to.1, fidx), (from.0, from.1)))
                     },
                     1 => {
                         self.storage[to.1 as usize] = self.stks[from.1 as usize].remove(from.2 as usize);
+                        Ok(((to.0, to.1, 233), (from.0, from.1)))
                     },
-                    _ => {}
+                    _ => {
+                        Err(MoveErr::CantMove)
+                    }
                 }
             },
             1 => {
                 match to.0 {
                     0 => {
+                        let fidx = self.stks[to.1 as usize].len() as u8;
                         self.stks[to.1 as usize].push(self.storage[from.1 as usize]);
                         self.storage[from.1 as usize] = Card::Empty;
+                        Ok(((to.0, to.1, fidx), (from.0, from.1)))
                     },
-                    _ => {}
+                    _ => {
+                        Err(MoveErr::CantMove)
+                    }
                 }
             },
             _ => {
+                Err(MoveErr::CantMove)
             },
         }
     }
@@ -206,6 +221,56 @@ impl Decks {
         }
         flag
     }
+
+    fn cut_num(&mut self, from: (u8, u8)) -> Result<(u8, u8, u8), MoveErr> {
+        let now_card: Card;
+        match from.0 {
+            0 => now_card = *self.stks[from.1 as usize].last().unwrap(),
+            1 => now_card = self.storage[from.1 as usize],
+            _ => {
+                return Err(MoveErr::CantMove);
+            }
+        }
+        if let Card::Num(tp, nu) = now_card {
+            if nu == self.rev_cards[tp as usize] + 1 {
+                match from.0 {
+                    0 => {
+                        self.stks[from.1 as usize].pop().unwrap();
+                    },
+                    1 => {
+                        self.storage[from.1 as usize] = Card::Empty;
+                    },
+                    _ => {
+                        return Err(MoveErr::CantMove);
+                    }
+                }
+                self.rev_cards[tp as usize] += 1;
+                Ok((from.0, from.1, tp))
+            }
+            else {
+                Err(MoveErr::CantMove)
+            }
+        }
+        else {
+            Err(MoveErr::CantMove)
+        }
+    }
+
+    fn recover_cut_num(&mut self, to: (u8, u8, u8)) -> Result<(), MoveErr> {
+        match to.0 {
+            0 => {
+                self.stks[to.1 as usize].push(Card::Num(to.2, self.rev_cards[to.2 as usize]));
+            },
+            1 => {
+                self.storage[to.1 as usize] = Card::Num(to.2, self.rev_cards[to.2 as usize]);
+            },
+            _ => {
+                return Err(MoveErr::CantMove);
+            }
+        }
+        self.rev_cards[to.2 as usize] -= 1;
+        Ok(())
+    }
 }
 
 // --- solve ---
@@ -247,7 +312,7 @@ fn test_for_swap() {
     decks.stks[0].push(Card::Num(1, 1));
     decks.stks[0].push(Card::Num(1, 2));
     decks.stks[0].push(Card::Num(1, 3));
-    decks.move_to((0, 0, 2), (0, 3));
+    assert!(decks.try_to_move((0, 0, 2), (0, 3)).is_ok());
     let mut decks2 = Decks::new_empty();
     decks2.stks[0].push(Card::Num(1, 1));
     decks2.stks[3].push(Card::Num(1, 2));
